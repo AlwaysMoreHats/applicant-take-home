@@ -1,9 +1,10 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../store';
 
 // Define a type for the slice state
 export interface OffersState {
     offers?: PrizeoutOffers;
+    selectedOfferId?: string;
 }
 
 // Define the initial state
@@ -687,7 +688,7 @@ export type PrizeoutOffer = {
     tag: string;
 };
 
-type PrizeoutOfferValueOptions = {
+export type PrizeoutOfferValueOptions = {
     checkout_value_id: string;
     cost_in_cents: number;
     display_bonus?: number;
@@ -702,9 +703,32 @@ type OffersRequest = {
 export const offersSlice = createSlice({
     initialState: offersInitialState,
     name: 'offers',
-    reducers: {},
+    reducers: {
+        toggleOfferId(state, action: PayloadAction<string>) {
+            if (state.selectedOfferId === action.payload) {
+                state.selectedOfferId = undefined;
+            } else {
+                state.selectedOfferId = action.payload;
+            }
+        },
+    },
 });
 
+export const { toggleOfferId } = offersSlice.actions;
+
 export const selectOffers = ({ offers }: RootState): PrizeoutOffers => offers.offers;
+export const selectSelectedOfferId = ({ offers }: RootState): string => offers.selectedOfferId;
+export const selectSelectedOffer = ({ offers }: RootState): PrizeoutOffer | undefined => {
+    return offers.offers
+        .reduce((prev, curr) => [...prev, ...curr.data], [] as PrizeoutOffer[])
+        .find((offer) =>
+            offer.giftcard_list.some(({ checkout_value_id }) => checkout_value_id === offers.selectedOfferId),
+        );
+};
+export const selectSelectedOfferValue = (state: RootState): PrizeoutOfferValueOptions | undefined => {
+    return selectSelectedOffer(state)?.giftcard_list.find(
+        ({ checkout_value_id }) => checkout_value_id === state.offers.selectedOfferId,
+    );
+};
 
 export default offersSlice.reducer;
